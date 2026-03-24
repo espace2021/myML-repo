@@ -10,9 +10,8 @@ app = FastAPI(title="API Analyse Risque Projet", version="1.0")
 
 # Modèle Pydantic pour valider l'entrée
 class Project(BaseModel):
-    budget: float
-    duree: int
-    equipe: int
+    Budget: float
+    Montant_collecte: float
 
 # Charger le modèle ML
 model = joblib.load("model.pkl")
@@ -25,17 +24,22 @@ def home():
 # Endpoint prédiction
 @app.post("/predict")
 def predict(data: Project):
-    # Préparer les données pour le modèle
-    X = np.array([[data.budget, data.duree, data.equipe]])
+    try:
+        # Préparer les données pour le modèle avec les colonnes exactes
+        X = np.array([[data.Budget, data.Montant_collecte]])
 
-    # Faire la prédiction
-    prediction = model.predict(X)
+        # Faire la prédiction
+        prediction = model.predict(X)
 
-    # Optionnel : calculer les probabilités
-    proba = model.predict_proba(X)
+        # Optionnel : calculer les probabilités
+        proba = model.predict_proba(X)
 
-    # Retourner un JSON avec la classe de risque et les probabilités
-    return {
-        "risk_class": int(prediction[0]),          # 0 = faible, 1 = élevé
-        "risk_probability": proba[0].tolist()      # probabilités [faible, élevé]
-    }
+        # Retourner un JSON avec la classe de risque et les probabilités
+        return {
+            "risk_class": int(prediction[0]),          # 0 = faible, 1 = élevé
+            "risk_probability": proba[0].tolist()      # probabilités [faible, élevé]
+        }
+
+    except Exception as e:
+        # Retourne l'erreur pour debug si quelque chose plante
+        return {"error": str(e)}
